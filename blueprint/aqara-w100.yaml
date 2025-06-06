@@ -1,6 +1,8 @@
 blueprint:
   name: Aqara W100 zigbee2mqtt management 
-  description: Hassio climat control, external probe management and custom buttons action. for Zigbee2mqtt only.
+description:
+    Hassio climat control, external probe management and custom buttons
+    action. for Zigbee2mqtt only.
   domain: automation
   input:
     device:
@@ -37,7 +39,9 @@ blueprint:
           multiple: false
     thermostat:
       name: thermostat to control
-      description: the thermostat device to contol (plus and minux button, single press)
+      description:
+        the thermostat device to contol (plus and minux button, single
+        press)
       selector:
         entity:
           domain:
@@ -73,6 +77,7 @@ blueprint:
       default: []
       selector:
         action: {}
+  source_url: https://raw.githubusercontent.com/clementTal/homelab/refs/heads/main/blueprint/aqara-w100.yaml
 mode: restart
 max_exceeded: silent
 trigger_variables:
@@ -81,7 +86,6 @@ trigger_variables:
   humidity_sensor: !input humidity_sensor
   temperature_sensor: !input temperature_sensor
   thermostat: !input thermostat
-
 variables:
   device_name: "{{device_attr(device, 'name')}}"
   device_topic: "{{ base_topic }}/{{ device_attr(device, 'name') }}/action"
@@ -94,7 +98,6 @@ trigger:
   - trigger: mqtt
     topic: "{{ base_topic }}/+/action"
     id: buttons
-
 action:
   - choose:
       - conditions:
@@ -109,7 +112,7 @@ action:
             target:
               entity_id: select.{{ device_name | lower }}_sensor
             data:
-              option: "external"
+              option: external
           - action: number.set_value
             target:
               entity_id: number.{{ device_name | lower }}_external_humidity
@@ -138,6 +141,21 @@ action:
                               entity_id: "{{thermostat}}"
                             data_template:
                               temperature: "{{ state_attr(thermostat, 'temperature') + 0.5 }}"
+                          - action: number.set_value
+                            target:
+                              entity_id: number.{{ device_name | lower }}_external_temperature
+                            data_template:
+                              value: "{{state_attr(thermostat, 'temperature')}}"
+                          - delay:
+                              hours: 0
+                              minutes: 0
+                              seconds: 2
+                              milliseconds: 0
+                          - action: number.set_value
+                            target:
+                              entity_id: number.{{ device_name | lower }}_external_temperature
+                            data_template:
+                              value: "{{states(temperature_sensor)}}"
                       - conditions: "{{ trigger.payload == 'single_minus' }}"
                         sequence:
                           - service: climate.set_temperature
@@ -145,6 +163,21 @@ action:
                               entity_id: "{{thermostat}}"
                             data_template:
                               temperature: "{{ state_attr(thermostat, 'temperature') - 0.5 }}"
+                          - action: number.set_value
+                            target:
+                              entity_id: number.{{ device_name | lower }}_external_temperature
+                            data_template:
+                              value: "{{state_attr(thermostat, 'temperature')}}"
+                          - delay:
+                              hours: 0
+                              minutes: 0
+                              seconds: 2
+                              milliseconds: 0
+                          - action: number.set_value
+                            target:
+                              entity_id: number.{{ device_name | lower }}_external_temperature
+                            data_template:
+                              value: "{{states(temperature_sensor)}}"
                       - conditions: "{{ trigger.payload == 'single_center' }}"
                         sequence:
                           - service: climate.toggle
